@@ -1,0 +1,33 @@
+FROM python:3.13-slim
+
+# Prevent python from writing .pyc files
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies
+
+
+RUN apt-get update && apt-get install -y  \
+    build-essential libpq-dev curl openjdk-21-jdk \
+ && rm -rf /var/lib/apt/lists/*
+
+
+# Set JAVA_HOME (needed if using pyspark)
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+# Create working directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Default command
+CMD ["bash"]
+
+
+
+
+
