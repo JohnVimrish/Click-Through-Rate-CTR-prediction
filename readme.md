@@ -135,5 +135,3 @@ Instead, we follow a production-safe approach:
 Drop candidates typically include features with very low gain (example: <0.5%), but removal is only accepted if validation metrics stay stable.
 
 ---
-
-## Repository Structure (suggested)
