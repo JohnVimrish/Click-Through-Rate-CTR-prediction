@@ -12,7 +12,6 @@ env/
 
 # Local data and generated artifacts
 dataset/
-artifacts/
 day_*.gz
 *.csv
 
