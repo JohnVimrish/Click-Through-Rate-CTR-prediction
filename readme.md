@@ -1,23 +1,28 @@
-# CTR Prediction MLOps Pipeline (Criteo 1TB Click Logs — Day_2)
 
-End-to-end **MLOps-style CTR (Click-Through Rate) prediction pipeline** built on a large-scale slice of the **Criteo 1TB Click Logs** dataset.  
-This repo focuses on building a production-realistic workflow using **one day partition (Day_2)** due to compute constraints, while keeping the architecture scalable to multiple days.
+**Scalable CTR Prediction with DLRM: An End-to-End MLOps Pipeline from EDA to Deep Learning**:
+
+## An End-to-End MLOps Pipeline from EDA to Deep Learning
 
 ---
 
-## Project Goals
+# 📌 Project Overview
 
-- Build a **reproducible ML pipeline** on a large dataset (~**20M rows**, ~**66GB** stored in DB across extracted days)
-- Perform **EDA at scale** (in-database aggregation, bucketing analysis)
-- Implement **production-aligned preprocessing**
-  - Numeric imputation + stabilization for heavy-tailed distributions
-  - Categorical missing/rare handling
-- Train a **baseline CTR model** (LightGBM) and extract **feature importance**
-- Produce artifacts that can later extend to:
-  - feature store
-  - model registry
-  - monitoring/drift detection
-  - automated retraining
+This project implements a **production-style CTR prediction system**, starting from raw compressed logs and evolving into a scalable Deep Learning Recommendation Model (DLRM) pipeline.
+
+Unlike toy examples, this project includes:
+
+* Raw data ingestion
+* SQL-style exploratory analysis
+* Statistical feature validation
+* Imputation & transformation rebuild
+* LightGBM baseline modeling
+* Hyperparameter tuning
+* CPU-optimized DLRM training
+* Artifact versioning
+* Modular MLOps-ready structure
+
+Dataset size: ~20M+ rows
+Hardware constraint: 16GB RAM, CPU-only
 
 ---
 
@@ -37,7 +42,7 @@ This repo focuses on building a production-realistic workflow using **one day pa
 
 - **Database:** Postgres (partitioned by `day`)
 - **RAM:** 16GB (hence, day-by-day processing and in-database EDA)
-- **Working partition:** `day = 'day_2'` (≈ 20M rows)
+- **Working partition:** `day = 'day_2','day_5` (≈ 20M rows)
 
 ---
 
@@ -73,6 +78,90 @@ This:
 
 ---
 
+
+# 🗂 Repository Structure
+
+```
+.
+├── artifacts/
+│   ├── eda_lgbm_metrics.json
+│   ├── eda_lgbm_tuning_results.csv
+│   ├── preprocess_artifacts.json
+│
+├── code_folder/
+│   ├── eda_analysis.py
+│   ├── analysing_data.ipynb
+│   ├── loading_data.ipynb
+│   ├── transform_pipeline.py
+│   ├── transform_pipeline.ipynb
+│   ├── imputation_rebuild.py
+│   ├── train_dlrm_cpu.py
+│
+├── dataset/
+├── dlrm_shards/
+├── sql_analysis/
+├── dockerfiles/
+├── day_2.gz ... day_10.gz
+├── readme.md
+└── .gitignore
+```
+
+---
+
+# 🏗 Pipeline Evolution
+
+This project was built incrementally — mirroring real-world ML system development.
+
+---
+
+## 1️⃣ Raw Data Ingestion
+
+Source:
+
+* Compressed daily logs (`day_X.gz`)
+
+Initial step:
+
+* Load raw CTR logs
+* Validate schema
+* Inspect label distribution
+* Verify data integrity
+
+Implemented in:
+
+* `loading_data.ipynb`
+
+---
+
+## 2️⃣ Exploratory Data Analysis (EDA)
+
+Performed deep statistical analysis:
+
+* CTR per feature bucket
+* Numeric feature distribution analysis
+* Heavy-tail detection
+* Missing value behavior analysis
+* Category frequency analysis
+
+Validated signal strength via:
+
+* Bucketed CTR comparison
+* Statistical variation checks
+
+Implemented in:
+
+* `analysing_data.ipynb`
+* `eda_analysis.py`
+
+Artifacts:
+
+* `eda_lgbm_metrics.json`
+* `eda_lgbm_tuning_results.csv`
+
+---
+
+## 3️⃣ Feature Engineering & Imputation Rebuild
+
 ## EDA Approach (Day-by-day, scalable)
 
 Because the dataset is large, EDA is done primarily in Postgres using aggregation queries.
@@ -92,15 +181,47 @@ This helps validate whether CTR changes across value ranges (univariate predicti
 
 **Key observation:** some numeric features show strong monotonic or threshold patterns (good predictive signal).
 
+### 🔹 Numeric Features
+
+* Missing → 0
+* Log transformation applied
+* Heavy-tail stabilization
+
+### 🔹 Categorical Features
+
+* Missing → "UNK"
+* Rare categories handled
+* Hash-based bucket encoding for memory safety
+
+Implemented in:
+
+* `imputation_rebuild.py`
+* `transform_pipeline.py`
+
+Artifacts:
+
+* `preprocess_artifacts.json`
+
 ---
 
-## Baseline Model
+## 4️⃣ Baseline Model — LightGBM
 
-### Model
-- **LightGBM** (baseline CTR model)
-- Evaluated using:
-  - AUC
-  - LogLoss
+Purpose:
+
+* Establish performance baseline
+* Validate feature importance
+* Perform gain-based feature ranking
+
+Used:
+
+* Gain importance
+* Split importance
+* Hyperparameter tuning
+
+Outcome:
+
+* Identified strongest predictive features
+* Reduced redundant features
 
 ### Feature importance
 We use **Gain-based feature importance** (how much each feature reduces loss).
@@ -135,3 +256,133 @@ Instead, we follow a production-safe approach:
 Drop candidates typically include features with very low gain (example: <0.5%), but removal is only accepted if validation metrics stay stable.
 
 ---
+## 5️⃣ Feature Selection Strategy
+
+Instead of dropping columns blindly:
+
+* Ranked by gain %
+* Performed controlled pruning
+* Validated AUC impact
+
+Ensured:
+
+* Signal retention
+* Reduced model complexity
+* Production defensibility
+
+---
+
+## 6️⃣ Sharded Dataset Strategy (Memory-Safe)
+
+Given 16GB RAM:
+
+* Split dataset into shards
+* Stream one shard at a time
+* Avoid full dataset in memory
+
+Stored in:
+
+* `dlrm_shards/`
+
+---
+
+## 7️⃣ Deep Learning Model — CPU-Based DLRM
+
+Implemented in:
+
+* `train_dlrm_cpu.py`
+
+Architecture:
+
+### 🔹 Embedding Layer
+
+* One embedding table per categorical feature
+* Hash bucket encoding
+
+### 🔹 Bottom MLP
+
+Dense features → embedding space projection
+
+### 🔹 Feature Interaction
+
+Pairwise dot-product interactions
+
+### 🔹 Top MLP
+
+Final probability prediction
+
+Loss:
+Binary Cross Entropy
+
+Optimizer:
+Adam
+
+---
+
+# 📊 Evaluation Metrics
+
+CTR datasets are highly imbalanced.
+
+Primary metric:
+
+### ✅ ROC-AUC
+
+Measures ranking quality.
+
+Secondary:
+
+* LogLoss
+* Precision
+* Recall
+* F1
+
+Accuracy intentionally not used.
+
+---
+
+# ⚙ Hyperparameter Search
+
+Performed grid search over:
+
+* Embedding dimension
+* Learning rate
+* Dropout
+* Batch size
+
+Selected best configuration using validation AUC.
+
+---
+
+# 🧠 MLOps Design Principles Applied
+
+✔ Modular pipeline
+✔ Artifact tracking
+✔ Reproducible preprocessing
+✔ Memory-aware training
+✔ Feature schema freezing
+✔ Experiment logging
+✔ Baseline comparison before deep model
+
+---
+
+# 🔄 End-to-End Flow
+
+```
+Raw .gz Logs
+      ↓
+Data Loading
+      ↓
+EDA + Statistical Validation
+      ↓
+Feature Engineering & Imputation
+      ↓
+LightGBM Baseline
+      ↓
+Feature Selection
+      ↓
+Sharded Dataset
+      ↓
+DLRM Training
+      ↓
+Model Artifacts Saved
+```
