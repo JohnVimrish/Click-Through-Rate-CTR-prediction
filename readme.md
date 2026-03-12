@@ -368,21 +368,72 @@ Selected best configuration using validation AUC.
 # 🔄 End-to-End Flow
 
 ```
-Raw .gz Logs
-      ↓
-Data Loading
-      ↓
-EDA + Statistical Validation
-      ↓
-Feature Engineering & Imputation
-      ↓
-LightGBM Baseline
-      ↓
-Feature Selection
-      ↓
-Sharded Dataset
-      ↓
-DLRM Training
-      ↓
-Model Artifacts Saved
+                    ┌──────────────────────────────┐
+                    │        Raw CTR Logs (.gz)    │
+                    │  day_2.gz ... day_10.gz      │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │      Data Loading Layer      │
+                    │  - Schema validation         │
+                    │  - Label distribution check  │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │        EDA & Analysis        │
+                    │  - Bucket CTR analysis       │
+                    │  - Heavy-tail detection      │
+                    │  - Missing value impact      │
+                    │  - Feature signal validation │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │  Feature Engineering Layer   │
+                    │  - Numeric stabilization     │
+                    │  - Rare category handling    │
+                    │  - Hash bucket encoding      │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │   LightGBM Baseline Model    │
+                    │  - Feature importance        │
+                    │  - Gain ranking              │
+                    │  - Hyperparameter tuning     │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ Feature Selection Strategy   │
+                    │  - Controlled pruning        │
+                    │  - AUC validation checks     │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │   Sharded Dataset Layer      │
+                    │  - Memory-safe partitions    │
+                    │  - Streaming IterableDataset │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │        DLRM Model            │
+                    │  - Embeddings                │
+                    │  - Bottom MLP                │
+                    │  - Interaction Layer         │
+                    │  - Top MLP                   │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │   Metrics & Artifacts        │
+                    │  - AUC / LogLoss             │
+                    │  - Model weights             │
+                    │  - Hyperparameters           │
+                    └──────────────────────────────┘
+
 ```
