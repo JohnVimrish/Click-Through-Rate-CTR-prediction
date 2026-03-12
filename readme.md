@@ -27,7 +27,7 @@ Hardware constraint: 16GB RAM, CPU-only
 ---
 
 ## Dataset
-
+Data source :https://huggingface.co/criteo
 **Criteo 1TB Click Logs**  
 - Each row = an **ad impression**
 - `label` = 1 if clicked, 0 otherwise
